@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>SAM - Systemowy Asystent Maszyn v0.55</title>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    body.dark {
+      background-color: #181818;
+      color: #eee;
+    }
+
+    header {
+      background: #4a90e2;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header.dark {
+      background: #222;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      cursor: pointer;
+      padding: 10px 15px;
+      border-radius: 5px;
+      background-color: #e0e0e0;
+      transition: 0.2s;
+    }
+
+    .tab:hover {
+      background-color: #ccc;
+    }
+
+    .tab.active {
+      background-color: #4a90e2;
+      color: white;
+    }
+
+    body.dark .tab {
+      background-color: #2a2a2a;
+      color: #ccc;
+    }
+
+    body.dark .tab.active {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    input[type="text"], input[type="file"] {
+      padding: 8px;
+      margin: 5px 0 15px;
+      width: 300px;
+      max-width: 100%;
+      background-color: #fff;
+      color: #000;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    body.dark input {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    button {
+      padding: 8px 16px;
+      margin: 5px 5px 15px 0;
+      cursor: pointer;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #357abd;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    body.dark th {
+      background-color: #444;
+    }
+
+    #darkModeToggle {
+      cursor: pointer;
+      font-size: 18px;
+    }
+	th, td {
+		border: 1px solid #ccc;
+		padding: 8px;
+		vertical-align: top;
+		word-wrap: break-word;
+		word-break: break-word;
+		white-space: pre-wrap;
+		max-width: 300px;
+}
+  </style>
+</head>
+<body>
+<script>
+  window.addEventListener('beforeunload', function (e) {
+    
+    e.preventDefault();
+    e.returnValue = 'Czy napewno chcesz zamknąć?';
+  });
+</script>
+  <header id="header">
+    <div><i class="fa-solid fa-file-excel"></i> SAM - Systemowy Asystent Maszyn v0.55</div>
+    <div id="darkModeToggle">Tryb ciemny/jasny <i class="fa-solid fa-moon"></i></div>
+  </header>
+
+  <div class="container">
+    <label><i class="fa-solid fa-upload"></i> Wczytaj plik z alarmami:</label><br/>
+    <input type="file" id="input-excel" accept=".xlsx"><br>
+	
+
+    <div class="tabs" id="tabBar" style="display: none;">
+		<div class="tab active" onclick="switchTab('add')"><i class="fa-solid fa-plus"></i> Dodaj alarm</div>
+
+		<div class="tab" onclick="switchTab('search')"><i class="fa-solid fa-magnifying-glass"></i> Wyszukaj alarm</div>
+		<div class="tab" onclick="switchTab('browse')"><i class="fa-solid fa-table-list"></i> Przeglądaj alarmy</div>
+		<div class="tab" onclick="saveExcel()"><i class="fa-solid fa-download"></i> Zapisz plik jako...</div>
+		<div class="tab" onclick="saveToSheet()"><i class="fa-solid fa-save"></i> Zapisz</div>
+		<div class="tab" onclick="openHelp()"><i class="fa-solid fa-circle-info"></i> Pomoc</div>
+		
+	</div>
+		<div id="saveReminder" style="color: darkred; margin-top: 10px; font-weight: bold; display: none;">
+  Pamiętaj, aby zapisać plik po dokonanych zmianach!
+		</div>
+    <div id="add" class="section">
+      <h2><i class="fa-solid fa-plus"></i> Dodaj alarm</h2>
+      Treść alarmu: <br/><input type="text" id="field1"><br/>
+      Przyczyna alarmu: <br/><input type="text" id="field2"><br/>
+      Sposób usunięcia: <br/><textarea id="field3" rows="4" style="width:300px;"></textarea><br/>
+      <button onclick="addRow()"><i class="fa-solid fa-check"></i> Dodaj</button>
+		<button onclick="cancelAdd()"><i class="fa-solid fa-xmark"></i> Anuluj</button>
+    </div>
+
+    <div id="search" class="section">
+      <h2><i class="fa-solid fa-search"></i> Wyszukaj alarm</h2>
+      <input type="text" id="search-query" placeholder="Wpisz numer alarmu">
+      <button onclick="search()"><i class="fa-solid fa-search"></i> Szukaj</button>
+      <div id="search-results"></div>
+		<div id="edit-form" style="display: none; margin-top: 20px;">
+  <h3>Edytuj alarm</h3>
+  Treść alarmu: <br/><input type="text" id="edit-field1"><br/>
+  Przyczyna alarmu: <br/><input type="text" id="edit-field2"><br/>
+  Sposób usunięcia: <br/><textarea id="edit-field3" rows="4" style="width:300px;"></textarea><br/>
+					
+  <button onclick="confirmEdit()">Zapisz zmiany</button>
+  <button onclick="cancelEdit()">Anuluj</button>
+		</div>
+    </div>
+	<div id="browse" class="section">
+  <h2><i class="fa-solid fa-table-list"></i> Wszystkie alarmy</h2>
+  <div id="all-alarms"></div>
+	</div>
+  </div>
+
+<script>
+
+function showSaveReminder() {
+  const reminder = document.getElementById('saveReminder');
+  reminder.style.display = 'block';
+  setTimeout(() => {
+    reminder.style.display = 'none';
+  }, 8000);
+}
+
+let workbook, worksheet, ws_name;
+let data = [];
+
+document.getElementById('input-excel').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const arrayBuffer = new Uint8Array(e.target.result);
+    workbook = XLSX.read(arrayBuffer, {type: 'array'});
+    ws_name = workbook.SheetNames[0];
+    worksheet = workbook.Sheets[ws_name];
+    data = XLSX.utils.sheet_to_json(worksheet, {header:1});
+    if(data.length === 0) {
+      data = [['Data dodania', 'Treść alarmu', 'Przyczyna Alarmu', 'Sposób rozwiązania']];
+    }
+    document.getElementById('tabBar').style.display = 'flex';
+    alert('Plik wczytany. Wybierz opcje.');
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelector(`.tab[onclick*="${tabId}"]`).classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+
+  if (tabId === 'browse') {
+    showAllAlarms();
+  }
+}
+
+function addRow() {
+  const f1 = document.getElementById('field1').value.trim();
+  const f2 = document.getElementById('field2').value.trim();
+  const f3 = document.getElementById('field3').value.trim();
+  if (f1 === '' && f2 === '' && f3 === '') {
+    alert('Uzupełnij przynajmniej jedno pole.');
+    return;
+  }
+
+  const now = new Date();
+
+  function pad(num) {
+    return num.toString().padStart(2, '0');
+  }
+
+  const formattedDate = 
+    pad(now.getDate()) + '.' + 
+    pad(now.getMonth() + 1) + '.' + 
+    now.getFullYear() + ' ' + 
+    pad(now.getHours()) + ':' + 
+    pad(now.getMinutes()) + ':' + 
+    pad(now.getSeconds());
+
+  data.push([formattedDate, f1, f2, f3]);
+
+  document.getElementById('field1').value = '';
+  document.getElementById('field2').value = '';
+  document.getElementById('field3').value = '';
+
+  alert('Alarm dodany.');
+  showSaveReminder();
+}
+
+function search() {
+  const q = document.getElementById('search-query').value.trim().toLowerCase();
+  const resultsDiv = document.getElementById('search-results');
+  resultsDiv.innerHTML = '';
+  if (q === '') {
+    resultsDiv.innerHTML = '<p>Wpisz numer alarmu.</p>';
+    return;
+  }
+  const results = data.filter((row, i) => i > 0 && row.some(cell => cell && cell.toString().toLowerCase().includes(q)));
+  if (results.length === 0) {
+    resultsDiv.innerHTML = '<p>Brak wyników.</p>';
+    return;
+  }
+  let html = '<table><tr>';
+  data[0].forEach(h => html += `<th>${h}</th>`);
+  html += '</tr>';
+  results.forEach(row => {
+    html += '<tr>';
+    row.forEach(cell => html += `<td>${cell || ''}</td>`);
+    html += '</tr>';
+  });
+  html += '</table>';
+  resultsDiv.innerHTML = html;
+}
+
+function saveExcel() {
+  if (!workbook) return alert('Najpierw wczytaj plik Excel!');
+  const newSheet = XLSX.utils.aoa_to_sheet(data);
+  workbook.Sheets[ws_name] = newSheet;
+  XLSX.writeFile(workbook, 'alarmy.xlsx');
+}
+
+document.getElementById('darkModeToggle').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  document.getElementById('header').classList.toggle('dark');
+  const icon = document.getElementById('darkModeToggle').querySelector('i');
+  icon.classList.toggle('fa-moon');
+  icon.classList.toggle('fa-sun');
+});
+</script>
+</body>
+</html>
+
+<script>
+
+function openHelp() {
+  const helpText = `
+    <h2>Pomoc - SAM - Systemowy Asystent Maszyn v0.55</h2>
+    <p>Ten program służy do zarządzania alarmami maszyn.</p>
+    <ul>
+      <li><b>Dodaj alarm:</b> Wprowadź treść, przyczynę i sposób usunięcia alarmu, a następnie kliknij "Dodaj".</li>
+      <li><b>Wyszukaj alarm:</b> Wpisz tekst, aby znaleźć alarmy zawierające podane słowo.</li>
+      <li><b>Przeglądaj alarmy:</b> Zobacz wszystkie dodane alarmy, możesz je edytować lub usuwać.</li>
+      <li><b>Zapisz plik jako...:</b> Zapisz dane do nowego pliku Excel. Zalecane jest korzystanie z tej opcji i nadpisanie wcześniej wczytanego pliku alarmy.xlsx</li>
+      <li><b>Zapisz:</b> Zapisz zmiany i pobierz plik Excel z aktualnymi danymi.</li>
+      <li><b>Tryb ciemny/jasny:</b> Przełącz między motywem jasnym a ciemnym.</li>
+	  <li>Jeżeli nie pojawia się opcja wyboru ścieżki zapisu pliku, w opcjach przeglądarki należy zaznaczyć/odznaczyć opcje pytania o zapis pliku, a następnie nadpisać wczytany wcześniej plik alarmy.xlsx</li>
+    </ul>
+    <p>W razie problemów proszę o kontakt. Michał Bryła.</p>
+  `;
+
+  const helpWindow = window.open('', 'Pomoc', 'width=400,height=400,scrollbars=yes,resizable=yes');
+  helpWindow.document.write('<html><head><title>Pomoc</title></head><body>');
+  helpWindow.document.write(helpText);
+  helpWindow.document.write('</body></html>');
+  helpWindow.document.close();
+}
+
+function showAllAlarms() {
+  const div = document.getElementById('all-alarms');
+  if (!data || data.length <= 1) {
+    div.innerHTML = '<p>Brak danych do wyświetlenia.</p>';
+    return;
+  }
+
+  let html = '<table><tr>';
+  data[0].forEach(h => html += `<th>${h}</th>`);
+  html += '<th>Usuń lub edytuj alarm</th></tr>';
+
+  for (let i = 1; i < data.length; i++) {
+    html += '<tr>';
+    data[i].forEach(cell => html += `<td>${cell || ''}</td>`);
+    html += `<td>
+      <button onclick="editAlarm(${i})">Edytuj</button>
+      <button onclick="deleteAlarm(${i})">Usuń</button>
+    </td></tr>`;
+  }
+
+  html += '</table>';
+  div.innerHTML = html;
+}
+
+function editAlarm(index) {
+  const row = data[index];
+  const newField1 = prompt("Nowa treść alarmu:", row[1]);
+  const newField2 = prompt("Nowa przyczyna alarmu:", row[2]);
+  const newField3 = prompt("Nowy sposób usunięcia:", row[3]);
+
+  if (newField1 !== null) data[index][1] = newField1;
+  if (newField2 !== null) data[index][2] = newField2;
+  if (newField3 !== null) data[index][3] = newField3;
+
+  showAllAlarms();
+  alert("Alarm zaktualizowany.");
+  showSaveReminder();
+}
+
+function deleteAlarm(index) {
+  if (confirm("Czy na pewno chcesz usunąć ten alarm?")) {
+    data.splice(index, 1);
+
+    for (let i = 1; i < data.length; i++) {
+      data[i][0] = i;
+    }
+
+    showAllAlarms();
+    alert("Alarm usunięty.");
+  }
+}
+let editIndex = -1;
+
+function saveToSheet() {
+  if (!workbook || !ws_name || !Array.isArray(data)) {
+    alert('Najpierw wczytaj plik.');
+    return;
+  }
+
+  try {
+    
+    for (let i = 1; i < data.length; i++) {
+      while (data[i].length < 4) {
+        data[i].push('');
+      }
+    }
+
+   
+    const updatedSheet = XLSX.utils.aoa_to_sheet(data);
+
+   
+    workbook.Sheets[ws_name] = updatedSheet;
+    worksheet = updatedSheet;
+
+    
+    XLSX.writeFile(workbook, 'alarmy.xlsx');
+    alert('Dane zapisane i pobrane jako plik!');
+  } catch (error) {
+    console.error("Błąd zapisu pliku:", error);
+    alert('Nie udało się zapisać pliku. Sprawdź dane wejściowe.');
+  }
+}
+
+function renderSearchResults(results) {
+  const resultsDiv = document.getElementById('search-results');
+  if (results.length === 0) {
+    resultsDiv.innerHTML = '<p>Brak wyników.</p>';
+    return;
+  }
+  let html = '<table><tr>';
+  data[0].forEach(h => html += `<th>${h}</th>`);
+  html += '<th>Usuń lub edytuj alarm</th></tr>';
+
+  results.forEach((row, index) => {
+    const realIndex = data.findIndex(r => r[0] === row[0]);
+    html += '<tr>';
+    row.forEach(cell => html += `<td>${cell || ''}</td>`);
+    html += `<td>
+      <button onclick="editRow(${realIndex})">Edytuj</button>
+      <button onclick="deleteRow(${realIndex})">Usuń</button>
+    </td></tr>`;
+  });
+
+  html += '</table>';
+  resultsDiv.innerHTML = html;
+}
+
+function editRow(index) {
+  editIndex = index;
+  document.getElementById('edit-field1').value = data[index][1] || '';
+  document.getElementById('edit-field2').value = data[index][2] || '';
+  document.getElementById('edit-field3').value = data[index][3] || '';
+  document.getElementById('edit-form').style.display = 'block';
+}
+
+function confirmEdit() {
+  if (editIndex <= 0) return;
+
+  data[editIndex][1] = document.getElementById('edit-field1').value.trim();
+  data[editIndex][2] = document.getElementById('edit-field2').value.trim();
+  data[editIndex][3] = document.getElementById('edit-field3').value.trim();
+
+  document.getElementById('edit-form').style.display = 'none';
+  editIndex = -1;
+  alert('Wiersz zaktualizowany.');
+  search();
+  showSaveReminder();
+}
+
+function cancelEdit() {
+  document.getElementById('edit-form').style.display = 'none';
+  editIndex = -1;
+  
+}
+function cancelAdd() {
+  document.getElementById('field1').value = '';
+  document.getElementById('field2').value = '';
+  document.getElementById('field3').value = '';
+  
+}
+
+function deleteRow(index) {
+  if (index <= 0) return;
+  if (confirm('Czy na pewno chcesz usunąć ten wiersz?')) {
+    data.splice(index, 1);
+    alert('Wiersz usunięty.');
+    search();
+  }
+}
+
+function search() {
+  const q = document.getElementById('search-query').value.trim().toLowerCase();
+  const resultsDiv = document.getElementById('search-results');
+  resultsDiv.innerHTML = '';
+  if (q === '') {
+    resultsDiv.innerHTML = '<p>Wpisz zapytanie.</p>';
+    return;
+  }
+  const results = data.filter((row, i) => i > 0 && row.some(cell => cell && cell.toString().toLowerCase().includes(q)));
+  renderSearchResults(results);
+}
+</script>
