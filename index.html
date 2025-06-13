@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>SAM - Systemowy Asystent Maszyn v0.55</title>
+  <title>SAM - Systemowy Asystent Maszyn v0.56</title>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -151,7 +151,7 @@
   });
 </script>
   <header id="header">
-    <div><i class="fa-solid fa-file-excel"></i> SAM - Systemowy Asystent Maszyn v0.55</div>
+    <div><i class="fa-solid fa-file-excel"></i> SAM - Systemowy Asystent Maszyn v0.56</div>
     <div id="darkModeToggle">Tryb ciemny/jasny <i class="fa-solid fa-moon"></i></div>
   </header>
 
@@ -326,7 +326,7 @@ document.getElementById('darkModeToggle').addEventListener('click', () => {
 
 function openHelp() {
   const helpText = `
-    <h2>Pomoc - SAM - Systemowy Asystent Maszyn v0.55</h2>
+    <h2>Pomoc - SAM - Systemowy Asystent Maszyn v0.56</h2>
     <p>Ten program służy do zarządzania alarmami maszyn.</p>
     <ul>
       <li><b>Dodaj alarm:</b> Wprowadź treść, przyczynę i sposób usunięcia alarmu, a następnie kliknij "Dodaj".</li>
@@ -390,9 +390,7 @@ function deleteAlarm(index) {
   if (confirm("Czy na pewno chcesz usunąć ten alarm?")) {
     data.splice(index, 1);
 
-    for (let i = 1; i < data.length; i++) {
-      data[i][0] = i;
-    }
+
 
     showAllAlarms();
     alert("Alarm usunięty.");
@@ -411,7 +409,7 @@ function saveToSheet() {
     for (let i = 1; i < data.length; i++) {
       while (data[i].length < 4) {
         data[i].push('');
-      }
+     }
     }
 
    
